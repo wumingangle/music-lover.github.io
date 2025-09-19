@@ -139,8 +139,7 @@
     <!-- Firebase SDK -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithRedirect, signOut, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, updateDoc, runTransaction } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithRedirect, signOut, signInAnonymously, getRedirectResult } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";        import { getFirestore, doc, getDoc, setDoc, updateDoc, runTransaction } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-analytics.js";
 
         // --- 全域變數與設定 ---
@@ -359,12 +358,27 @@
                     
                     await main();
                 } else {
-                    // 使用者已登出
-                    userId = null;
-                    currentUserData = null;
-                    
-                    document.getElementById('login-container').classList.remove('hidden');
-                    document.getElementById('app-container').classList.add('hidden');
+                    // 使用者已登出或尚未登入
+                    // 在這裡，我們也檢查一下是否是剛從登入頁面跳轉回來
+                    getRedirectResult(auth).then(async (result) => {
+                        if (result) {
+                            // 如果 result 存在，表示是剛登入成功。
+                            // onAuthStateChanged 會自動再次觸發，屆時上面的 if (user) 區塊就會執行。
+                            // 這裡我們先顯示一個讀取中的畫面，避免登入畫面閃爍。
+                            document.getElementById('loader').style.display = 'flex';
+                            document.getElementById('login-container').classList.add('hidden');
+                            document.getElementById('app-container').classList.remove('hidden'); // 顯示 app 容器以容納 loader
+                        } else {
+                            // 如果 result 是 null，表示使用者是真的未登入，此時才顯示登入畫面。
+                            document.getElementById('login-container').classList.remove('hidden');
+                            document.getElementById('app-container').classList.add('hidden');
+                        }
+                    }).catch(error => {
+                        console.error("處理登入重導向時發生錯誤:", error);
+                        // 發生錯誤時，還是顯示登入畫面
+                        document.getElementById('login-container').classList.remove('hidden');
+                        document.getElementById('app-container').classList.add('hidden');
+                    });
                 }
             });
         }
@@ -541,7 +555,7 @@
             }
 
             showToast("正在儲存所有評分...");
-            const userDocRef = doc(db, `artifacts/${appId}/users/${userId}`);
+            const userDocRef = doc(db, `artifacts/${ARTIFACT_ID}/users/${userId}`);
 
             try {
                 await runTransaction(db, async (transaction) => {
@@ -640,7 +654,7 @@
         }
 
         async function saveDailyRecommendations(songIds) {
-            const userDocRef = doc(db, `artifacts/${appId}/users/${userId}`);
+            const userDocRef = doc(db, `artifacts/${ARTIFACT_ID}/users/${userId}`);
             const today = new Date().toISOString().split('T')[0];
             await updateDoc(userDocRef, {
                 dailyRecommendations: songIds,
@@ -717,6 +731,7 @@
     </script>
 </body>
 </html>
+
 
 
 
