@@ -145,8 +145,15 @@
 
         // --- 全域變數與設定 ---
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-song-recommender';
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : { apiKey: "YOUR_API_KEY", authDomain: "...", projectId: "..." };
-
+        const firebaseConfig = {
+          apiKey: "AIzaSyB2NWv5sIgESimdCgBJ4pr50CAPAfF3I88",
+          authDomain: "music-lover-89430.firebaseapp.com",
+          projectId: "music-lover-89430",
+          storageBucket: "music-lover-89430.appspot.com",
+          messagingSenderId: "428251252845",
+          appId: "1:428251252845:web:95826eeaf12075b9edd764",
+          measurementId: "G-VJ5S6JXDF6"
+        };
         let app, auth, db, analytics, userId, currentUserData;
         let pendingRatings = {};
         let hasSavedToday = false;
@@ -710,4 +717,5 @@
     </script>
 </body>
 </html>
+
 
