@@ -8,7 +8,7 @@
     <!-- PWA 設定 -->
     <meta name="theme-color" content="#8b5cf6"/>
     <link rel="apple-touch-icon" href="https://placehold.co/192x192/8b5cf6/ffffff?text=🎵&font=noto">
-    <link rel="manifest" href="data:application/json;base64,ewogICJuYW1lIjogIuW+l+S4i+W8j+WKoOWvueiBlOiBlOAppIiwKICAic2hvcnRfbmFtZSI6ICLnur/lkIPlvI/liqIiLAogICJzdGFydF91cmwiOiAiLiIsCiAgImRpc3BsYXkiOiAic3RhbmRhbG9uZSIsCiAgImJhY2tncm91bmRfY29sb3IiOiAiIzExMTgyNyIsCiAgInRoZW1lX2NvbG9yIjogIiM4YjVjZjYiLAogICJkZXNjcmlwdGlvbiI6ICLmsYnlkI/lhbbkvZXnur/lkIPlvI/liqIsIOWcsOWdg+S4iOS9kOiBlOWKoOWvueiBlOAppIiwKICAiaWNvbnMiOiBbCiAgICB7CiAgICAgICJzcmMiOiAiaHR0cHM6Ly9wbGFjZWhvbGQuY28vMTkyeDE5Mi84YjVjZjYvZmZmZmZmP3RleHQ98J+NmAhmb250PW5vdG8iLAogICAgICAic2l6ZXMiOiAiMTkyeDE5MiIsCiAgICAgICJ0eXBlIjogImltYWdlL3BuZyIKICAgIH0sCiAgICB7CiAgICAgICJzcmMiOiAiaHR0cHM6Ly9wbGFjZWhvbGQuY28vNTEyeDUxMi84YjVjZjYvZmZmZmZmP3RleHQ98J+NmAhmb250PW5vdG8iLAogICAgICAic2l6ZXMiOiAiNTEyeDUxMiIsCiAgICAgICJ0eXBlIjogImltYWdlL3BuZyIKICAgIH0KICBdCn0K">
+    <link rel="manifest" href="data:application/json;base64,ewogICJuYW1lIjogIuW+l+S4i+W8j+WKoOWvueiBlOiBlIiwKICAic2hvcnRfbmFtZSI6ICLnur/lkIPlvI/liqIiLAogICJzdGFydF91cmwiOiAiLiIsCiAgImRpc3BsYXkiOiAic3RhbmRhbG9uZSIsCiAgImJhY2tncm91bmRfY29sb3IiOiAiIzExMTgyNyIsCiAgInRoZW1lX2NvbG9yIjogIiM4YjVjZjYiLAogICJkZXNjcmlwdGlvbiI6ICLmsYnlkI/lhbbkvZXnur/lkIPlvI/liqIsIOWcsOWdg+S4iOS9kOiBlOWKoOWvueiBlIiwKICAiaWNvbnMiOiBbCiAgICB7CiAgICAgICJzcmMiOiAiaHR0cHM6Ly9wbGFjZWhvbGQuY28vMTkyeDE5Mi84YjVjZjYvZmZmZmZmP3RleHQ98J+NmAhmb250PW5vdG8iLAogICAgICAic2l6ZXMiOiAiMTkyeDE5MiIsCiAgICAgICJ0eXBlIjogImltYWdlL3BuZyIKICAgIH0sCiAgICB7CiAgICAgICJzcmMiOiAiaHR0cHM6Ly9wbGFjZWhvbGQuY28vNTEyeDUxMi84YjVjZjYvZmZmZmZmP3RleHQ98J+NmAhmb250PW5vdG8iLAogICAgICAic2l6ZXMiOiAiNTEyeDUxMiIsCiAgICAgICJ0eXBlIjogImltYWdlL3BuZyIKICAgIH0KICBdCn0K">
 
     <!-- 引入 Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -187,7 +187,7 @@
         let pendingRatings = {};
         let hasSavedToday = false;
 
-        // --- 歌曲資料庫 (省略... 與原檔案相同) ---
+        // --- 歌曲資料庫 ---
         const ALL_SONGS = [
             // Pop
             { id: 's001', title: 'Blinding Lights', artist: 'The Weeknd', genre: 'Synth-pop', tempo: 'Upbeat', arrangement: 'Electronic', lyrics: 'Emotional' },
@@ -360,7 +360,46 @@
 
         // --- PWA Service Worker 註冊 ---
         function registerServiceWorker() {
-            // ... (此處程式碼不變)
+            if ('serviceWorker' in navigator) {
+                const swCode = `
+                    const CACHE_NAME = 'song-recommender-cache-v1';
+                    const urlsToCache = [
+                        '/',
+                        'https://cdn.tailwindcss.com',
+                        'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap',
+                        'https://unpkg.com/lucide@latest'
+                    ];
+
+                    self.addEventListener('install', event => {
+                        event.waitUntil(
+                            caches.open(CACHE_NAME).then(cache => {
+                                console.log('Opened cache');
+                                // 使用 no-cors 模式來快取跨來源資源，但不保證回應內容正確性
+                                const requests = urlsToCache.map(url => new Request(url, { mode: 'no-cors' }));
+                                return cache.addAll(requests);
+                            }).catch(err => console.error('Cache addAll failed:', err))
+                        );
+                    });
+
+                    self.addEventListener('fetch', event => {
+                        event.respondWith(
+                            caches.match(event.request).then(response => {
+                                return response || fetch(event.request);
+                            })
+                        );
+                    });
+                `;
+                const swBlob = new Blob([swCode], { type: 'application/javascript' });
+                const swUrl = URL.createObjectURL(swBlob);
+
+                navigator.serviceWorker.register(swUrl)
+                    .then(registration => {
+                        console.log('ServiceWorker Registration successful with scope: ', registration.scope);
+                    })
+                    .catch(error => {
+                        console.log('ServiceWorker Registration failed: ', error);
+                    });
+            }
         }
 
         // --- 新增的輔助函式，用於設定使用者階段 ---
@@ -632,13 +671,61 @@
         }
 
         function updateTasteProfile(profile, song, newRating, oldRating) {
-            // ... (此處程式碼不變)
+            const ratingWeight = { 1: -2, 2: -1, 3: 0, 4: 1, 5: 2 };
+            
+            profile.genres = profile.genres || {};
+            profile.tempos = profile.tempos || {};
+            profile.arrangements = profile.arrangements || {};
+            profile.lyrics = profile.lyrics || {};
+
+            const categories = ['genre', 'tempo', 'arrangement', 'lyrics'];
+            categories.forEach(category => {
+                const value = song[category];
+                const profileCategory = category === 'lyrics' ? 'lyrics' : `${category}s`;
+                if (!profile[profileCategory][value]) profile[profileCategory][value] = { score: 0, count: 0 };
+
+                if (oldRating) {
+                    profile[profileCategory][value].score -= ratingWeight[oldRating];
+                    if (profile[profileCategory][value].count > 0) profile[profileCategory][value].count -= 1;
+                }
+                
+                profile[profileCategory][value].score += ratingWeight[newRating];
+                profile[profileCategory][value].count += 1;
+            });
+
             return profile;
         }
 
         async function generateNewRecommendations(userData) {
-            // ... (此處程式碼不變)
-            return [];
+            const { ratings, tasteProfile } = userData;
+            const ratedSongIds = Object.keys(ratings);
+            const unratedSongs = ALL_SONGS.filter(song => !ratedSongIds.includes(song.id));
+
+            if (unratedSongs.length < 5) { return unratedSongs.map(s => s.id); }
+            if (ratedSongIds.length < 5) {
+                return unratedSongs.sort(() => 0.5 - Math.random()).slice(0, 5).map(s => s.id);
+            }
+
+            const scoredSongs = unratedSongs.map(song => {
+                let score = 0;
+                const { genres, tempos, arrangements, lyrics } = tasteProfile;
+
+                const genreProfile = genres && genres[song.genre];
+                const tempoProfile = tempos && tempos[song.tempo];
+                const arrangementProfile = arrangements && arrangements[song.arrangement];
+                const lyricsProfile = lyrics && lyrics[song.lyrics];
+
+                if (genreProfile && genreProfile.count > 0) score += (genreProfile.score / genreProfile.count) * 1.2;
+                if (tempoProfile && tempoProfile.count > 0) score += tempoProfile.score / tempoProfile.count;
+                if (arrangementProfile && arrangementProfile.count > 0) score += arrangementProfile.score / arrangementProfile.count;
+                if (lyricsProfile && lyricsProfile.count > 0) score += lyricsProfile.score / lyricsProfile.count;
+
+                score += (Math.random() - 0.5) * 0.1; 
+                return { song, score };
+            });
+
+            scoredSongs.sort((a, b) => b.score - a.score);
+            return scoredSongs.slice(0, 5).map(item => item.song.id);
         }
 
         async function saveDailyRecommendations(songIds) {
@@ -680,12 +767,49 @@
         }
 
         function populateAnalysisPanel(tasteProfile) {
-            // ... (此處程式碼不變)
+            renderCategory('genres', tasteProfile.genres, 'genre-analysis', 'purple');
+            renderCategory('tempos', tasteProfile.tempos, 'tempo-analysis', 'teal');
+            renderCategory('arrangements', tasteProfile.arrangements, 'arrangement-analysis', 'sky');
+            renderCategory('lyrics', tasteProfile.lyrics, 'lyrics-analysis', 'rose');
         }
 
         function renderCategory(name, data, containerId, color) {
-            // ... (此處程式碼不變)
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+
+            if (!data || Object.keys(data).length === 0) {
+                container.innerHTML = `<p class="text-gray-500 text-sm">請先評分一些歌曲...</p>`;
+                return;
+            }
+
+            const sortedItems = Object.entries(data)
+                .map(([name, values]) => ({ name, ...values }))
+                .filter(item => item.score > 0)
+                .sort((a, b) => b.score - a.score)
+                .slice(0, 5);
+            
+            if (sortedItems.length === 0) {
+                container.innerHTML = `<p class="text-gray-500 text-sm">尚無明顯偏好...</p>`;
+                return;
+            }
+
+            const maxScore = Math.max(...sortedItems.map(item => item.score), 1);
+
+            sortedItems.forEach(item => {
+                const percentage = (item.score / maxScore) * 100;
+                const itemEl = document.createElement('div');
+                itemEl.innerHTML = `
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="text-sm font-medium text-gray-300">${item.name}</span>
+                    </div>
+                    <div class="w-full bg-gray-700 rounded-full h-2.5">
+                        <div class="bg-${color}-500 h-2.5 rounded-full" style="width: ${percentage}%"></div>
+                    </div>
+                `;
+                container.appendChild(itemEl);
+            });
         }
     </script>
 </body>
 </html>
+
