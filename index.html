@@ -144,7 +144,7 @@
         import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-analytics.js";
 
         // --- 全域變數與設定 ---
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-song-recommender';
+        const ARTIFACT_ID = typeof __app_id !== 'undefined' ? __app_id : 'default-song-recommender';
         const firebaseConfig = {
           apiKey: "AIzaSyB2NWv5sIgESimdCgBJ4pr50CAPAfF3I88",
           authDomain: "music-lover-89430.firebaseapp.com",
@@ -430,7 +430,7 @@
         }
 
         async function getUserData() {
-            const userDocRef = doc(db, `artifacts/${appId}/users/${userId}`);
+            const userDocRef = doc(db, `artifacts/${ARTIFACT_ID}/users/${userId}`);
             const userDocSnap = await getDoc(userDocRef);
 
             if (userDocSnap.exists()) {
@@ -717,5 +717,6 @@
     </script>
 </body>
 </html>
+
 
 
